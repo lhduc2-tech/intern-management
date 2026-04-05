@@ -1,7 +1,7 @@
 package com.viettelsoftware.intern_management.domain.service;
 
 import com.viettelsoftware.intern_management.domain.dto.PermissionDTO;
-import com.viettelsoftware.intern_management.domain.dto.RoleManagementDTO;
+import com.viettelsoftware.intern_management.domain.dto.RoleDTO;
 import com.viettelsoftware.intern_management.domain.entity.PermissionEntity;
 import com.viettelsoftware.intern_management.domain.entity.RoleEntity;
 import com.viettelsoftware.intern_management.domain.mapper.PermissionMapper;
@@ -28,13 +28,13 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoleManagementDTO> getRoles() {
+    public List<RoleDTO> getRoles() {
         return rolePermissionPort.findAllRoles().stream().map(roleMapper::toDto).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public RoleManagementDTO getRole(String roleCode) {
+    public RoleDTO getRole(String roleCode) {
         String normalizedCode = normalizeCode(roleCode);
         validateSupportedRole(normalizedCode);
         RoleEntity roleEntity = rolePermissionPort.findRoleByCode(normalizedCode)
@@ -44,7 +44,28 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     @Override
     @Transactional
-    public RoleManagementDTO updateRolePermissions(String roleCode, Set<String> permissionCodes) {
+    public RoleDTO createRole(RoleDTO roleDTO) {
+        String normalizedCode = normalizeCode(roleDTO.getCode());
+        validateSupportedRole(normalizedCode);
+
+        if (rolePermissionPort.findRoleByCode(normalizedCode).isPresent()) {
+            throw new IllegalArgumentException("Role already exists: " + normalizedCode);
+        }
+
+        RoleKey roleKey = RoleKey.fromValue(normalizedCode);
+        RoleEntity roleEntity = RoleEntity.builder()
+                .code(normalizedCode)
+                .name(normalizeName(roleDTO.getName(), normalizedCode))
+                .description(roleDTO.getDescription() != null ? roleDTO.getDescription() : roleKey.getDescription())
+                .status("ACTIVE")
+                .build();
+
+        return roleMapper.toDto(rolePermissionPort.saveRole(roleEntity));
+    }
+
+    @Override
+    @Transactional
+    public RoleDTO updateRolePermissions(String roleCode, Set<String> permissionCodes) {
         String normalizedCode = normalizeCode(roleCode);
         validateSupportedRole(normalizedCode);
 
@@ -117,6 +138,13 @@ public class RolePermissionServiceImpl implements RolePermissionService {
 
     private void validateSupportedRole(String roleCode) {
         RoleKey.fromValue(roleCode);
+    }
+
+    private String normalizeName(String input, String fallback) {
+        if (input == null || input.isBlank()) {
+            return fallback;
+        }
+        return input.trim();
     }
 }
 

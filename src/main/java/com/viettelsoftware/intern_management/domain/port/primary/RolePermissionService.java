@@ -1,18 +1,21 @@
 package com.viettelsoftware.intern_management.domain.port.primary;
 
 import com.viettelsoftware.intern_management.domain.dto.PermissionDTO;
-import com.viettelsoftware.intern_management.domain.dto.RoleManagementDTO;
+import com.viettelsoftware.intern_management.domain.dto.RoleDTO;
 
 import java.util.List;
 import java.util.Set;
 
+@SuppressWarnings("unused")
 public interface RolePermissionService {
 
-    List<RoleManagementDTO> getRoles();
+    List<RoleDTO> getRoles();
 
-    RoleManagementDTO getRole(String roleCode);
+    RoleDTO getRole(String roleCode);
 
-    RoleManagementDTO updateRolePermissions(String roleCode, Set<String> permissionCodes);
+    RoleDTO createRole(RoleDTO roleDTO);
+
+    RoleDTO updateRolePermissions(String roleCode, Set<String> permissionCodes);
 
     List<PermissionDTO> getPermissions();
 

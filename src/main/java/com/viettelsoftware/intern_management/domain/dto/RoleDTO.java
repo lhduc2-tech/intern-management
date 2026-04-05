@@ -7,7 +7,8 @@ import java.util.Set;
 
 @Getter
 @Builder
-public class RoleManagementDTO {
+@SuppressWarnings("unused")
+public class RoleDTO {
 
     private String code;
 
@@ -19,4 +20,5 @@ public class RoleManagementDTO {
 
     private Set<String> permissionCodes;
 }
+
 
