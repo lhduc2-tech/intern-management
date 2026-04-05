@@ -1,0 +1,2 @@
+@com.viettelsoftware.intern_management.SharedKernel
+package com.viettelsoftware.intern_management.shared.enumeration;

@@ -1,0 +1,86 @@
+logging:
+  level:
+    org:
+      springframework:
+        web:
+          servlet:
+            mvc:
+              method:
+                annotation:
+                  RequestMappingHandlerMapping: DEBUG
+    zaxxer:
+      hikari:
+        HikariConfig: DEBUG
+    com:
+      example:
+        mlts: DEBUG
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: intern-management-service
+  threads:
+    virtual:
+      enabled: true
+  data:
+    jpa:
+      repositories:
+        bootstrap-mode: deferred
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      auto-commit: false
+      pool-name: Hikari
+      maximum-pool-size: 40
+      data-source-properties:
+        oracle:
+          jdbc:
+            defaultConnectionValidation: LOCAL
+      minimum-idle: 10
+    type: com.zaxxer.hikari.HikariDataSource
+    url: ${DB_URL}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+      naming:
+        implicit-strategy: org.springframework.boot.orm.jpa.hibernate.SpringImplicitNamingStrategy
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    open-in-view: false
+    properties:
+      hibernate:
+        connection:
+          provider_disables_autocommit: true
+        generate_statistics: false
+        jdbc:
+          batch_size: 25
+          time_zone: UTC
+        order_inserts: true
+        order_updates: true
+        query:
+          fail_on_pagination_over_collection_fetch: true
+          in_clause_parameter_padding: true
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+        show_sql: true
+        format_sql: true
+application:
+  version: api/v1
+  path:
+    base:
+      private: /private/${application.version}
+      public: /public/${application.version}
+
+server:
+  port: 8082
+  servlet:
+    context-path: ${SERVER_CTX_PATH:}
+
+proxy:
+  enable: false
+  host: localhost
+  port: 8082
