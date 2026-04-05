@@ -6,6 +6,7 @@
 - Runtime config lives in `src/main/resources/config/application.yaml` (server port `8082`, PostgreSQL datasource via env vars).
 - Test profile config is `src/test/resources/application-test.yml` (in-memory H2, `ddl-auto: create-drop`).
 - Public/private API prefixes are config-driven: `${application.path.base.public}` and `${application.path.base.private}`.
+- Spring virtual threads are enabled in runtime config (`spring.threads.virtual.enabled: true`).
 
 ## Architecture and Boundaries
 - Package layering follows ports/adapters style:
@@ -15,28 +16,36 @@
 - `domain/port/secondary` = outbound contracts (example: `UserPort`, `PasswordPort`, `JwtProviderPort`).
 - `infrastructure/secondary/jpa/adapter` = outbound implementations (example: `UserJpaAdapter`).
 - `infrastructure/secondary/jpa/repository` = Spring Data repositories (example: `UserRepository`).
+- `wire/database/DatabaseConfiguration.java` enables JPA auditing and resolves the current auditor from the authenticated principal map.
+- `wire/WebConfig.java` enables Spring Data Web support, permissive CORS on `/**`, and `AcceptHeaderLocaleResolver`.
+- `AuthOperator` keeps public auth endpoints under `${application.path.base.public}/auth`; `RolePermissionOperator` keeps RBAC endpoints under `${application.path.base.private}/rbac`.
 - Typical request flow: `AuthOperator` -> `AuthServiceImpl` -> secondary ports -> adapters/repositories.
+- Registration keeps the raw password in `UserDTO` only long enough for `AuthServiceImpl` to encode it, and supported roles are normalized/created there if missing.
+- RBAC mutations are handled by `RolePermissionServiceImpl`, which uppercases role/permission codes and rejects unsupported or missing codes with `IllegalArgumentException`.
 
 ## Security and Error Handling Conventions
 - Security rules are centralized in `src/main/java/com/viettelsoftware/intern_management/wire/security/SecurityConfig.java`.
 - `publicPath/**` is permit-all, `privatePath/**` requires authentication, sessions are stateless.
 - JWT is handled by `JwtAuthenticationFilter` reading `Authorization: Bearer <token>`.
 - `JwtUtil` creates an in-memory signing key at startup, so tokens are not stable across restarts.
+- `JwtAuthenticationFilter` accepts `roles`, `permissions`, and legacy `role` claims, builds a principal map with `username` and `userId`, and exposes authorities as `ROLE_<ROLE>` plus uppercased permission codes.
 - Domain auth failures throw `AuthException` with `AuthErrorKey` values.
-- `GlobalExceptionHandler` returns HTTP 400 for `AuthException` and validation errors (map-shaped JSON).
+- `GlobalExceptionHandler` returns map-shaped JSON for `AuthException`, validation, malformed payload, data-integrity, and access-denied failures (400/403/500 as appropriate), and translates common username/email uniqueness violations into friendly messages.
 
 ## Data, Mapping, and Domain Patterns
 - Entities use DTO mapping through MapStruct (`domain/mapper/BaseMapper`, `UserMapper`).
 - JPA adapters commonly extend `BaseJPAAdapterVer2<...>` and expose DTO-based methods.
+- `BaseMapper` is the shared MapStruct contract; concrete mappers such as `UserMapper` use `@Mapper(componentModel = "spring")` and derive `roleCodes`/`permissionCodes` from `RoleEntity` sets.
 - `UserEntity` generates UUIDs in `@PrePersist` using `UuidCreator.getTimeOrderedEpoch()`.
 - Audit fields (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`) come from `BaseAuditing` + `CustomeAuditingEntityListener`.
 - Shared package marker is present via `@SharedKernel` in `shared/enumeration/package-info.java`.
+- `DatabaseConfiguration` enables auditing from `SecurityContextHolder`; if no authenticated principal is present, audit fields fall back to `system`.
 
 ## Developer Workflows (Verified)
 - Run tests: `./mvnw.cmd test -DskipITs` (verified passing locally: 7 tests).
 - Build jar: `./mvnw.cmd clean package`.
 - Run app locally: set `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, optional `SERVER_CTX_PATH`, then `./mvnw.cmd spring-boot:run`.
-- Integration tests use MockMvc in `src/test/java/com/viettelsoftware/intern_management/infrastructure/primary/restful/AuthOperatorIntegrationTest.java`.
+- Integration tests use MockMvc in `src/test/java/com/viettelsoftware/intern_management/infrastructure/primary/restful/AuthOperatorIntegrationTest.java` and `RolePermissionOperatorIntegrationTest.java`, both against the H2 `test` profile in `src/test/resources/application-test.yml`.
 - Docker image build is multi-stage in `Dockerfile` (`mvn package -DskipTests` then run jar).
 - Note: `Dockerfile` exposes `8080` while app config default is `8082`; align with env/runtime overrides when containerizing.
 
