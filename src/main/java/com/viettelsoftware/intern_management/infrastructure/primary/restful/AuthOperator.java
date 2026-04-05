@@ -1,5 +1,6 @@
 package com.viettelsoftware.intern_management.infrastructure.primary.restful;
 
+import com.viettelsoftware.intern_management.domain.dto.UserDTO;
 import com.viettelsoftware.intern_management.domain.port.primary.AuthService;
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.request.LoginRequest;
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.request.RegisterRequest;
@@ -23,7 +24,7 @@ public class AuthOperator {
 
     @PostMapping("/register")
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request.getUsername(), request.getEmail(), request.getPassword());
+        authService.register(toUserDTO(request));
         return ResponseEntity.ok().build();
     }
 
@@ -31,5 +32,15 @@ public class AuthOperator {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         String token = authService.login(request.getUsernameOrEmail(), request.getPassword());
         return ResponseEntity.ok(AuthResponse.builder().accessToken(token).build());
+    }
+
+    private UserDTO toUserDTO(RegisterRequest request) {
+        return UserDTO.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .fullName(request.getFullName())
+                // Raw password is carried here and encoded in the domain service.
+                .passwordHash(request.getPassword())
+                .build();
     }
 }

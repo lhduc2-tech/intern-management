@@ -14,9 +14,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -46,7 +46,7 @@ class AuthOperatorIntegrationTest {
 
     @Test
     void testRegister_Success() throws Exception {
-        String requestParams = "{\"username\":\"newuser\", \"email\":\"newuser@example.com\", \"password\":\"mypassword\"}";
+        String requestParams = "{\"username\":\"newuser\", \"email\":\"newuser@example.com\", \"fullName\":\"New User\", \"password\":\"mypassword\"}";
 
         mockMvc.perform(post("/public/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -54,6 +54,7 @@ class AuthOperatorIntegrationTest {
                 .andExpect(status().isOk());
 
         assertTrue(userRepository.existsByUsername("newuser"));
+        assertEquals("New User", userRepository.findByUsername("newuser").orElseThrow().getFullName());
     }
 
     @Test
@@ -67,7 +68,7 @@ class AuthOperatorIntegrationTest {
                 .build();
         userRepository.save(existingUser);
 
-        String requestParams = "{\"username\":\"existinguser\", \"email\":\"new@example.com\", \"password\":\"mypassword\"}";
+        String requestParams = "{\"username\":\"existinguser\", \"email\":\"new@example.com\", \"fullName\":\"Existing User\", \"password\":\"mypassword\"}";
 
         mockMvc.perform(post("/public/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -78,14 +79,15 @@ class AuthOperatorIntegrationTest {
 
     @Test
     void testRegister_ValidationFails_ReturnsBadRequest() throws Exception {
-        // Invalid email format and too short password
-        String requestParams = "{\"username\":\"validuser\", \"email\":\"invalid-email\", \"password\":\"123\"}";
+        // Invalid email format, blank fullName and too short password
+        String requestParams = "{\"username\":\"validuser\", \"email\":\"invalid-email\", \"fullName\":\"\", \"password\":\"123\"}";
 
         mockMvc.perform(post("/public/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestParams))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.email").value("Email should be valid"))
+                                .andExpect(jsonPath("$.fullName").value("Full name must not be blank"))
                 .andExpect(jsonPath("$.password").value("Password must be between 6 and 256 characters"));
     }
 

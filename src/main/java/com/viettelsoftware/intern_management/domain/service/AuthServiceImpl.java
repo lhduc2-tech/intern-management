@@ -19,21 +19,22 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProviderPort jwtProviderPort;
 
     @Override
-    public void register(String username, String email, String password) {
-        if (userPort.existsByUsername(username)) {
+    public void register(UserDTO userDTO) {
+        if (userPort.existsByUsername(userDTO.getUsername())) {
             throw new AuthException("Username already exists", AuthErrorKey.USERNAME_ALREADY_EXISTS.getValue());
         }
-        if (userPort.existsByEmail(email)) {
+        if (userPort.existsByEmail(userDTO.getEmail())) {
             throw new AuthException("Email already exists", AuthErrorKey.EMAIL_ALREADY_EXISTS.getValue());
         }
 
-        UserDTO userDTO = UserDTO.builder()
-                .username(username)
-                .email(email)
-                .passwordHash(passwordPort.encode(password))
+        UserDTO userToSave = UserDTO.builder()
+                .username(userDTO.getUsername())
+                .email(userDTO.getEmail())
+                .fullName(userDTO.getFullName())
+                .passwordHash(passwordPort.encode(userDTO.getPasswordHash()))
                 .build();
 
-        userPort.save(userDTO);
+        userPort.save(userToSave);
     }
 
     @Override
