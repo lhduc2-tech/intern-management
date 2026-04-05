@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
+import java.util.Set;
+
 @RestController
 @RequestMapping("${application.path.base.public}/auth")
 public class AuthOperator {
@@ -39,6 +41,7 @@ public class AuthOperator {
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .fullName(request.getFullName())
+                .roleCodes(Set.of(request.getRole().trim().toUpperCase()))
                 // Raw password is carried here and encoded in the domain service.
                 .passwordHash(request.getPassword())
                 .build();

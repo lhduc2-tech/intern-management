@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,6 +29,9 @@ public class JwtUtil implements JwtProviderPort {
     public String generateToken(UserDTO userDTO) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userDTO.getId().toString());
+        claims.put("roles", new ArrayList<>(userDTO.getRoleCodes()));
+        claims.put("permissions", new ArrayList<>(userDTO.getPermissionCodes()));
+        userDTO.getRoleCodes().stream().findFirst().ifPresent(role -> claims.put("role", role));
 
         return Jwts.builder()
                 .setClaims(claims)

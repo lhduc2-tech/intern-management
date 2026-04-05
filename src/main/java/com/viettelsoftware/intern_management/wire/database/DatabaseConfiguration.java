@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.data.domain.AuditorAware;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -50,6 +51,8 @@ public class DatabaseConfiguration {
     @Bean
     public AuditorAware<String> auditorAware() {
         return () -> Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
+                .filter(authentication -> authentication.isAuthenticated()
+                        && !(authentication instanceof AnonymousAuthenticationToken))
                 .map(Authentication::getPrincipal)
                 .map(this::resolveAuditor)
                 .filter(value -> !value.isBlank())

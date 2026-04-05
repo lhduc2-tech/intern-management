@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.transaction.TransactionSystemException;
+import org.springframework.security.access.AccessDeniedException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -76,6 +77,18 @@ public class GlobalExceptionHandler {
         details.put("exception", ex.getClass().getSimpleName());
         details.put("rootCause", safeMessage(ex));
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "INVALID_REQUEST_PAYLOAD", "Request body is invalid or malformed.", details);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDeniedException(AccessDeniedException ex) {
+        Map<String, Object> details = new HashMap<>();
+        details.put("exception", ex.getClass().getSimpleName());
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "FORBIDDEN", "You do not have permission to access this resource.", details);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "INVALID_ARGUMENT", safeUserMessage(ex), Collections.emptyMap());
     }
 
     @ExceptionHandler(Exception.class)

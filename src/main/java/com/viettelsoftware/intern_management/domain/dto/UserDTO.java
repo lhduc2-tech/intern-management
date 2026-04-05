@@ -3,6 +3,8 @@ package com.viettelsoftware.intern_management.domain.dto;
 import lombok.*;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter
@@ -25,6 +27,12 @@ public class UserDTO {
     private OffsetDateTime lastLoginAt;
 
     private String fullName;
+
+    @Builder.Default
+    private Set<String> roleCodes = new HashSet<>();
+
+    @Builder.Default
+    private Set<String> permissionCodes = new HashSet<>();
 
     private OffsetDateTime createdAt;
 

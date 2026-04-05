@@ -1,6 +1,5 @@
 package com.viettelsoftware.intern_management.infrastructure.primary.restful;
 
-
 import com.viettelsoftware.intern_management.domain.entity.UserEntity;
 import com.viettelsoftware.intern_management.domain.port.secondary.PasswordPort;
 import com.viettelsoftware.intern_management.infrastructure.secondary.jpa.repository.UserRepository;
@@ -39,6 +38,7 @@ class AuthOperatorIntegrationTest {
     @Autowired
     private PasswordPort passwordPort;
 
+
     @BeforeEach
     void setUp() {
         userRepository.deleteAll(); // Clean the database before each test
@@ -48,7 +48,7 @@ class AuthOperatorIntegrationTest {
 
     @Test
     void testRegister_Success() throws Exception {
-        String requestParams = "{\"username\":\"newuser\", \"email\":\"newuser@example.com\", \"fullName\":\"New User\", \"password\":\"mypassword\"}";
+        String requestParams = "{\"username\":\"newuser\", \"email\":\"newuser@example.com\", \"fullName\":\"New User\", \"role\":\"INTERN\", \"password\":\"mypassword\"}";
 
         mockMvc.perform(post("/public/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -56,7 +56,9 @@ class AuthOperatorIntegrationTest {
                 .andExpect(status().isOk());
 
         assertTrue(userRepository.existsByUsername("newuser"));
-        assertEquals("New User", userRepository.findByUsername("newuser").orElseThrow().getFullName());
+        UserEntity saved = userRepository.findByUsername("newuser").orElseThrow();
+        assertEquals("New User", saved.getFullName());
+        assertTrue(saved.getRoles().stream().anyMatch(role -> "INTERN".equals(role.getCode())));
     }
 
     @Test
@@ -86,7 +88,7 @@ class AuthOperatorIntegrationTest {
                 .build();
         userRepository.save(existingUser);
 
-        String requestParams = "{\"username\":\"existinguser\", \"email\":\"new@example.com\", \"fullName\":\"Existing User\", \"password\":\"mypassword\"}";
+        String requestParams = "{\"username\":\"existinguser\", \"email\":\"new@example.com\", \"fullName\":\"Existing User\", \"role\":\"INTERN\", \"password\":\"mypassword\"}";
 
         mockMvc.perform(post("/public/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -100,7 +102,7 @@ class AuthOperatorIntegrationTest {
     @Test
     void testRegister_ValidationFails_ReturnsBadRequest() throws Exception {
         // Invalid email format, blank fullName and too short password
-        String requestParams = "{\"username\":\"validuser\", \"email\":\"invalid-email\", \"fullName\":\"\", \"password\":\"123\"}";
+        String requestParams = "{\"username\":\"validuser\", \"email\":\"invalid-email\", \"fullName\":\"\", \"role\":\"\", \"password\":\"123\"}";
 
         mockMvc.perform(post("/public/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -110,7 +112,19 @@ class AuthOperatorIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Request validation failed."))
                 .andExpect(jsonPath("$.details.email").value("Email should be valid"))
                 .andExpect(jsonPath("$.details.fullName").value("Full name must not be blank"))
+                .andExpect(jsonPath("$.details.role").value("Role must not be blank"))
                 .andExpect(jsonPath("$.details.password").value("Password must be between 6 and 256 characters"));
+    }
+
+    @Test
+    void testRegister_InvalidRole_ReturnsBadRequest() throws Exception {
+        String requestParams = "{\"username\":\"badrole\", \"email\":\"badrole@example.com\", \"fullName\":\"Bad Role\", \"role\":\"SUPER_USER\", \"password\":\"mypassword\"}";
+
+        mockMvc.perform(post("/public/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestParams))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("INVALID_ROLE"));
     }
 
     @Test
@@ -192,4 +206,5 @@ class AuthOperatorIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Request validation failed."))
                 .andExpect(jsonPath("$.details.usernameOrEmail").value("Username or email must not be blank"));
     }
+
 }
