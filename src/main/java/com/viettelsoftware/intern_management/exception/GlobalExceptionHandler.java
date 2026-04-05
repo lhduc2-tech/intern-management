@@ -1,13 +1,21 @@
 package com.viettelsoftware.intern_management.exception;
 
 import com.viettelsoftware.intern_management.exception.domain.AuthException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.transaction.TransactionSystemException;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,29 +23,110 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthException.class)
-    public ResponseEntity<Map<String, String>> handleAuthException(AuthException ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", ex.getErrorCode());
-        error.put("message", ex.getMessage());
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<Map<String, Object>> handleAuthException(AuthException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getErrorCode(), ex.getMessage(), Collections.emptyMap());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
+    public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new LinkedHashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request validation failed.", Map.copyOf(errors));
     }
-    
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        Map<String, Object> details = new HashMap<>();
+        details.put("rootCause", safeMessage(ex.getMostSpecificCause()));
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "DATA_INTEGRITY_VIOLATION", resolveDataIntegrityMessage(ex), details);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
+        Map<String, String> details = new LinkedHashMap<>();
+        for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
+            details.put(violation.getPropertyPath().toString(), violation.getMessage());
+        }
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Request validation failed.", Map.copyOf(details));
+    }
+
+    @ExceptionHandler(TransactionSystemException.class)
+    public ResponseEntity<Map<String, Object>> handleTransactionSystemException(TransactionSystemException ex) {
+        Throwable root = ex.getRootCause();
+        if (root instanceof DataIntegrityViolationException dataIntegrityViolationException) {
+            return handleDataIntegrityViolation(dataIntegrityViolationException);
+        }
+        if (root instanceof ConstraintViolationException constraintViolationException) {
+            return handleConstraintViolation(constraintViolationException);
+        }
+
+        Map<String, Object> details = new HashMap<>();
+        details.put("exception", ex.getClass().getSimpleName());
+        details.put("rootCause", safeMessage(root));
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", safeUserMessage(ex), details);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        Map<String, Object> details = new HashMap<>();
+        details.put("exception", ex.getClass().getSimpleName());
+        details.put("rootCause", safeMessage(ex));
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "INVALID_REQUEST_PAYLOAD", "Request body is invalid or malformed.", details);
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleGenericException(Exception ex) {
-        Map<String, String> error = new HashMap<>();
-        error.put("error", "INTERNAL_SERVER_ERROR");
-        error.put("message", "An unexpected error occurred.");
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        Map<String, Object> details = new HashMap<>();
+        details.put("exception", ex.getClass().getSimpleName());
+        details.put("rootCause", safeMessage(ex.getCause()));
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR", safeUserMessage(ex), details);
+    }
+
+    private String resolveDataIntegrityMessage(DataIntegrityViolationException ex) {
+        String message = safeMessage(ex.getMostSpecificCause()).toLowerCase();
+
+        if ((message.contains("username") && message.contains("unique")) || message.contains("users_username_key")) {
+            return "Username already exists.";
+        }
+        if ((message.contains("email") && message.contains("unique")) || message.contains("users_email_key")) {
+            return "Email already exists.";
+        }
+        if (message.contains("status") && message.contains("null")) {
+            return "User status is required.";
+        }
+
+        return "Database constraint violation.";
+    }
+
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(
+            HttpStatus status,
+            String error,
+            String message,
+            Map<String, ?> details
+    ) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("error", error);
+        response.put("message", message);
+        response.put("details", details == null ? Collections.emptyMap() : details);
+        return new ResponseEntity<>(response, status);
+    }
+
+    private String safeMessage(Throwable throwable) {
+        if (throwable == null || throwable.getMessage() == null) {
+            return "";
+        }
+        return throwable.getMessage();
+    }
+
+    private String safeUserMessage(Exception ex) {
+        String message = ex.getMessage();
+        if (message == null || message.isBlank()) {
+            return "An unexpected error occurred.";
+        }
+        return message;
     }
 }

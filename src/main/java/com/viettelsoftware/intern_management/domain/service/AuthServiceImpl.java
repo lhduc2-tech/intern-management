@@ -9,6 +9,9 @@ import com.viettelsoftware.intern_management.exception.domain.AuthException;
 import com.viettelsoftware.intern_management.shared.enumeration.domain.AuthErrorKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.OffsetDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +22,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProviderPort jwtProviderPort;
 
     @Override
+    @Transactional
     public void register(UserDTO userDTO) {
         if (userPort.existsByUsername(userDTO.getUsername())) {
             throw new AuthException("Username already exists", AuthErrorKey.USERNAME_ALREADY_EXISTS.getValue());
@@ -31,6 +35,7 @@ public class AuthServiceImpl implements AuthService {
                 .username(userDTO.getUsername())
                 .email(userDTO.getEmail())
                 .fullName(userDTO.getFullName())
+                .status("ACTIVE")
                 .passwordHash(passwordPort.encode(userDTO.getPasswordHash()))
                 .build();
 
@@ -38,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public String login(String usernameOrEmail, String password) {
         UserDTO userDTO = userPort.findByUsername(usernameOrEmail)
                 .orElseGet(() -> userPort.findByEmail(usernameOrEmail)
@@ -46,6 +52,9 @@ public class AuthServiceImpl implements AuthService {
         if (!passwordPort.matches(password, userDTO.getPasswordHash())) {
             throw new AuthException("Invalid credentials", AuthErrorKey.INVALID_CREDENTIALS.getValue());
         }
+
+        userDTO.setLastLoginAt(OffsetDateTime.now());
+        userPort.save(userDTO);
 
         return jwtProviderPort.generateToken(userDTO);
     }

@@ -5,9 +5,16 @@ import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.data.domain.AuditorAware;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.Map;
+import java.util.Optional;
 
 import javax.sql.DataSource;
 
@@ -17,6 +24,8 @@ import javax.sql.DataSource;
 @EnableJpaAuditing
 @EnableJpaRepositories(basePackages = {"com.viettelsoftware.intern_management"}, enableDefaultTransactions = false)
 public class DatabaseConfiguration {
+
+    private static final String SYSTEM_AUDITOR = "system";
 
     private final DataSource dataSource;
 
@@ -36,5 +45,23 @@ public class DatabaseConfiguration {
         } else {
             log.info("DataSource is not an instance of HikariDataSource");
         }
+    }
+
+    @Bean
+    public AuditorAware<String> auditorAware() {
+        return () -> Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
+                .map(Authentication::getPrincipal)
+                .map(this::resolveAuditor)
+                .filter(value -> !value.isBlank())
+                .or(() -> Optional.of(SYSTEM_AUDITOR));
+    }
+
+    private String resolveAuditor(Object principal) {
+        if (principal instanceof Map<?, ?> map) {
+            Object username = map.get("username");
+            return username == null ? "" : username.toString();
+        }
+
+        return principal == null ? "" : principal.toString();
     }
 }

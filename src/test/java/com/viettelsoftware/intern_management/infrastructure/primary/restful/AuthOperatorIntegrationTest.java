@@ -17,8 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,6 +60,22 @@ class AuthOperatorIntegrationTest {
     }
 
     @Test
+    void testAuditFields_DefaultToSystem_WhenNoAuthentication() {
+        UserEntity user = UserEntity.builder()
+                .username("audited-user")
+                .email("audited@example.com")
+                .fullName("Audited User")
+                .passwordHash("hashed-pass")
+                .status("ACTIVE")
+                .build();
+
+        UserEntity saved = userRepository.saveAndFlush(user);
+
+        assertEquals("system", saved.getCreatedBy());
+        assertEquals("system", saved.getUpdatedBy());
+    }
+
+    @Test
     void testRegister_DuplicateUsername_ReturnsBadRequest() throws Exception {
         // Setup existing user
         UserEntity existingUser = UserEntity.builder()
@@ -74,7 +92,9 @@ class AuthOperatorIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestParams))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("USERNAME_ALREADY_EXISTS"));
+                .andExpect(jsonPath("$.error").value("USERNAME_ALREADY_EXISTS"))
+                .andExpect(jsonPath("$.message").value("Username already exists"))
+                .andExpect(jsonPath("$.details").exists());
     }
 
     @Test
@@ -86,9 +106,29 @@ class AuthOperatorIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestParams))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.email").value("Email should be valid"))
-                                .andExpect(jsonPath("$.fullName").value("Full name must not be blank"))
-                .andExpect(jsonPath("$.password").value("Password must be between 6 and 256 characters"));
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Request validation failed."))
+                .andExpect(jsonPath("$.details.email").value("Email should be valid"))
+                .andExpect(jsonPath("$.details.fullName").value("Full name must not be blank"))
+                .andExpect(jsonPath("$.details.password").value("Password must be between 6 and 256 characters"));
+    }
+
+    @Test
+    void testDataIntegrityException_ReturnsUnifiedErrorEnvelope() throws Exception {
+        mockMvc.perform(get("/test-errors/data-integrity"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("DATA_INTEGRITY_VIOLATION"))
+                .andExpect(jsonPath("$.message").value("Username already exists."))
+                .andExpect(jsonPath("$.details.rootCause").value("users_username_key"));
+    }
+
+    @Test
+    void testGenericException_ReturnsUnifiedErrorEnvelope() throws Exception {
+        mockMvc.perform(get("/test-errors/generic"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error").value("INTERNAL_SERVER_ERROR"))
+                .andExpect(jsonPath("$.message").value("boom"))
+                .andExpect(jsonPath("$.details.exception").value("IllegalStateException"));
     }
 
     // --- LOGIN TESTS ---
@@ -112,6 +152,8 @@ class AuthOperatorIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())
                 .andExpect(jsonPath("$.accessToken").isString());
+
+        assertNotNull(userRepository.findByUsername("loginuser").orElseThrow().getLastLoginAt());
     }
 
     @Test
@@ -132,7 +174,9 @@ class AuthOperatorIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestParams))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("INVALID_CREDENTIALS"));
+                .andExpect(jsonPath("$.error").value("INVALID_CREDENTIALS"))
+                .andExpect(jsonPath("$.message").value("Invalid credentials"))
+                .andExpect(jsonPath("$.details").exists());
     }
 
     @Test
@@ -144,6 +188,8 @@ class AuthOperatorIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestParams))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.usernameOrEmail").value("Username or email must not be blank"));
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Request validation failed."))
+                .andExpect(jsonPath("$.details.usernameOrEmail").value("Username or email must not be blank"));
     }
 }
