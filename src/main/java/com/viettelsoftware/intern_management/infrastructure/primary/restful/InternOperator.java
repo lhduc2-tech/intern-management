@@ -32,8 +32,9 @@ public class InternOperator {
 
     @PostMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'MENTOR', 'MANAGER')")
-    public PageResponse<InternResponse> searchInterns(@Valid @RequestBody InternSearchRequest request) {
-        return PageResponse.of(internService.searchInterns(toCriteria(request), request.toPageable()), this::toInternResponse);
+    public PageResponse<InternResponse> searchInterns(@Valid @RequestBody(required = false) InternSearchRequest request) {
+        InternSearchRequest safeRequest = request == null ? new InternSearchRequest() : request;
+        return PageResponse.of(internService.searchInterns(toCriteria(safeRequest), safeRequest.toPageable()), this::toInternResponse);
     }
 
     @GetMapping("/{id}")

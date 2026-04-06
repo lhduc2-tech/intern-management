@@ -5,12 +5,16 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.transaction.TransactionSystemException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -84,6 +88,31 @@ public class GlobalExceptionHandler {
         Map<String, Object> details = new HashMap<>();
         details.put("exception", ex.getClass().getSimpleName());
         return buildErrorResponse(HttpStatus.FORBIDDEN, "FORBIDDEN", "You do not have permission to access this resource.", details);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        Map<String, Object> details = new HashMap<>();
+        details.put("exception", ex.getClass().getSimpleName());
+        details.put("method", ex.getMethod());
+        details.put("supportedMethods", ex.getSupportedHttpMethods() == null ? java.util.List.of() : ex.getSupportedHttpMethods().stream().map(org.springframework.http.HttpMethod::name).toList());
+        return buildErrorResponse(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "HTTP method is not supported for this endpoint.", details);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
+        if (request != null && "POST".equalsIgnoreCase(request.getMethod()) && request.getRequestURI() != null && request.getRequestURI().endsWith("/users")) {
+            Map<String, Object> details = new HashMap<>();
+            details.put("exception", ex.getClass().getSimpleName());
+            details.put("method", request.getMethod());
+            details.put("path", request.getRequestURI());
+            return buildErrorResponse(HttpStatus.METHOD_NOT_ALLOWED, "METHOD_NOT_ALLOWED", "HTTP method is not supported for this endpoint.", details);
+        }
+
+        Map<String, Object> details = new HashMap<>();
+        details.put("exception", ex.getClass().getSimpleName());
+        details.put("path", request == null ? "" : request.getRequestURI());
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "NOT_FOUND", "The requested resource was not found.", details);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

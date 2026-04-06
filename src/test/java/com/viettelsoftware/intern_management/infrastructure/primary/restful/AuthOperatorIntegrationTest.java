@@ -59,6 +59,8 @@ class AuthOperatorIntegrationTest {
         UserEntity saved = userRepository.findByUsername("newuser").orElseThrow();
         assertEquals("New User", saved.getFullName());
         assertTrue(saved.getRoles().stream().anyMatch(role -> "INTERN".equals(role.getCode())));
+        assertEquals("system", saved.getCreatedBy());
+        assertEquals("system", saved.getUpdatedBy());
     }
 
     @Test

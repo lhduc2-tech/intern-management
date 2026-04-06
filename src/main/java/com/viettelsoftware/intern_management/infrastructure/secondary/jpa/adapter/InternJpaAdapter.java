@@ -89,7 +89,7 @@ public class InternJpaAdapter extends BaseJPAAdapterVer2<InternEntity, InternDTO
                 predicate = cb.and(predicate, cb.equal(root.get("mentorId"), criteria.getMentorId()));
             }
             if (criteria.getOrganization() != null && !criteria.getOrganization().isBlank()) {
-                predicate = cb.and(predicate, cb.equal(cb.lower(root.get("organization")), criteria.getOrganization().trim().toLowerCase()));
+                predicate = cb.and(predicate, cb.like(cb.lower(root.get("organization")), "%" + criteria.getOrganization().trim().toLowerCase() + "%"));
             }
 
             return predicate;

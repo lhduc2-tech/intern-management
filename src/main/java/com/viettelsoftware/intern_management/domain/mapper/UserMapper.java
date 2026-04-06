@@ -5,6 +5,7 @@ import com.viettelsoftware.intern_management.domain.entity.PermissionEntity;
 import com.viettelsoftware.intern_management.domain.entity.UserEntity;
 import com.viettelsoftware.intern_management.domain.entity.RoleEntity;
 import org.mapstruct.Mapper;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
@@ -22,6 +23,7 @@ public interface UserMapper extends BaseMapper<UserEntity, UserDTO> {
 	UserDTO toDto(UserEntity entity);
 
 	@Override
+	@BeanMapping(builder = @org.mapstruct.Builder(disableBuilder = true))
 	@Mapping(target = "roles", ignore = true)
 	UserEntity toEntity(UserDTO dto);
 

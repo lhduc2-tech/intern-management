@@ -84,3 +84,9 @@ proxy:
   enable: false
   host: localhost
   port: 8082
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:}
+    expiration-ms: ${JWT_EXPIRATION_MS:}
+

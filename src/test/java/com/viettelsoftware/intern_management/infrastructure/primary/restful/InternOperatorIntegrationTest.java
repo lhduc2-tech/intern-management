@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -95,14 +96,22 @@ class InternOperatorIntegrationTest {
                 UUID.randomUUID()
         );
 
-        mockMvc.perform(put("/private/api/v1/interns/{id}", internId)
+        MvcResult updateResult = mockMvc.perform(put("/private/api/v1/interns/{id}", internId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .header("Authorization", "Bearer " + internToken)
                         .content(updateRequest))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ONBOARDING"))
                 .andExpect(jsonPath("$.technology").value("Spring Boot"))
-                .andExpect(jsonPath("$.acceptanceDocument").value("offer-v2.pdf"));
+                .andExpect(jsonPath("$.acceptanceDocument").value("offer-v2.pdf"))
+                .andExpect(jsonPath("$.createdBy").exists())
+                .andExpect(jsonPath("$.updatedBy").exists())
+                .andReturn();
+
+        JsonNode updatedResponse = objectMapper.readTree(updateResult.getResponse().getContentAsString());
+        com.viettelsoftware.intern_management.domain.entity.InternEntity updatedIntern = internRepository.findById(internId).orElseThrow();
+        assertEquals(updatedIntern.getCreatedBy(), updatedResponse.get("createdBy").asText());
+        assertEquals(updatedIntern.getUpdatedBy(), updatedResponse.get("updatedBy").asText());
 
         mockMvc.perform(delete("/private/api/v1/interns/{id}", internId)
                         .header("Authorization", "Bearer " + adminToken))
@@ -150,6 +159,21 @@ class InternOperatorIntegrationTest {
                         .content(searchBodyPage2))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].companyAccount").value(firstEmail));
+    }
+
+    @Test
+    void testSearchInterns_WithoutBody_ReturnsAllInternsWithDefaultPagination() throws Exception {
+        String adminToken = registerAndLogin("intern-search-empty", "intern-search-empty@example.com", "ADMIN");
+
+        createIntern(adminToken, UUID.randomUUID(), "acct-empty-1", "ID-E-1", UUID.randomUUID(), UUID.randomUUID(), "Viettel");
+        createIntern(adminToken, UUID.randomUUID(), "acct-empty-2", "ID-E-2", UUID.randomUUID(), UUID.randomUUID(), "Viettel");
+
+        mockMvc.perform(post("/private/api/v1/interns/search")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content.length()").value(2));
     }
 
     @Test
@@ -211,6 +235,29 @@ class InternOperatorIntegrationTest {
                 .andExpect(jsonPath("$.content[0].userId").value(generatedUserId.toString()))
                 .andExpect(jsonPath("$.content[0].companyAccount").value(generatedEmail))
                 .andExpect(jsonPath("$.content[0].organization").value("FPT"));
+    }
+
+    @Test
+    void testSearchInterns_ByPartialOrganization_WithVietnameseText_ReturnsMatch() throws Exception {
+        String adminToken = registerAndLogin("intern-search-org", "intern-search-org@example.com", "ADMIN");
+
+        createIntern(
+                adminToken,
+                UUID.randomUUID(),
+                "acct-org-1",
+                "ID-ORG-1",
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                "Trung tâm phần mềm viễn thông"
+        );
+
+        mockMvc.perform(post("/private/api/v1/interns/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .content("{\"organization\":\"trung tâm\",\"pageIndex\":0,\"pageSize\":10}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].organization").value("Trung tâm phần mềm viễn thông"));
     }
 
     @Test

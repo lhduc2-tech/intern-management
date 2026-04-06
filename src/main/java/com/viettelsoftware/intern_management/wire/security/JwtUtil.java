@@ -9,6 +9,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.ArrayList;
@@ -18,12 +19,22 @@ import java.util.Map;
 @Component
 public class JwtUtil implements JwtProviderPort {
 
-    // Using a securely generated key for HS256 algorithm (min 256 bits)
-    // In production, this should be injected via environment variables
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private static final int MIN_SECRET_BYTES = 32;
 
-    @Value("${app.jwt.expiration-ms:86400000}")
-    private long jwtExpirationMs; // Default 24 hours
+    private final Key key;
+    private final long jwtExpirationMs;
+
+    public JwtUtil(
+            @Value("${app.jwt.secret}") String jwtSecret,
+            @Value("${app.jwt.expiration-ms:86400000}") long jwtExpirationMs
+    ) {
+        byte[] secretBytes = jwtSecret == null ? new byte[0] : jwtSecret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException("app.jwt.secret must be at least 32 bytes for HS256");
+        }
+        this.key = Keys.hmacShaKeyFor(secretBytes);
+        this.jwtExpirationMs = jwtExpirationMs;
+    }
 
     @Override
     public String generateToken(UserDTO userDTO) {
