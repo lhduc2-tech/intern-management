@@ -56,10 +56,12 @@ class InternOperatorIntegrationTest {
         String adminToken = registerAndLogin("intern-crud-admin", "intern-crud-admin@example.com", "ADMIN");
         String internToken = registerAndLogin("intern-crud-intern", "intern-crud-intern@example.com", "INTERN");
         UUID userId = UUID.randomUUID();
+        UUID internshipSessionId = createInternshipSession(adminToken, "Session 2026-A");
 
         String createRequest = String.format(
-                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"companyAccount\":\"acct-001\",\"identityNumber\":\"ID-001\",\"technology\":\"Java\",\"mentorId\":\"%s\",\"organization\":\"Viettel\",\"gender\":\"MALE\",\"dateOfBirth\":\"2000-01-01\",\"level\":\"FRESHER\",\"major\":\"IT\",\"university\":\"HUST\",\"phone\":\"0123456789\",\"permanentAddress\":\"Hanoi\",\"position\":\"Intern Developer\",\"internshipStartDate\":\"2026-01-01\",\"internshipEndDate\":\"2026-06-01\",\"acceptanceDocument\":\"offer.pdf\"}",
+                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"internshipSessionId\":\"%s\",\"companyAccount\":\"acct-001\",\"identityNumber\":\"ID-001\",\"technology\":\"Java\",\"mentorId\":\"%s\",\"organization\":\"Viettel\",\"gender\":\"MALE\",\"dateOfBirth\":\"2000-01-01\",\"level\":\"FRESHER\",\"major\":\"IT\",\"university\":\"HUST\",\"phone\":\"0123456789\",\"permanentAddress\":\"Hanoi\",\"position\":\"Intern Developer\",\"internshipStartDate\":\"2026-01-01\",\"internshipEndDate\":\"2026-06-01\",\"acceptanceDocument\":\"offer.pdf\"}",
                 userId,
+                internshipSessionId,
                 UUID.randomUUID()
         );
 
@@ -70,6 +72,7 @@ class InternOperatorIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.internshipSessionId").value(internshipSessionId.toString()))
                 .andExpect(jsonPath("$.graduated").value(false))
                 .andReturn();
 
@@ -90,8 +93,9 @@ class InternOperatorIntegrationTest {
                 .andExpect(jsonPath("$.identityNumber").value("ID-001"));
 
         String updateRequest = String.format(
-                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"status\":\"ONBOARDING\",\"companyAccount\":\"%s\",\"identityNumber\":\"ID-001\",\"technology\":\"Spring Boot\",\"mentorId\":\"%s\",\"organization\":\"Viettel\",\"gender\":\"MALE\",\"dateOfBirth\":\"2000-01-01\",\"level\":\"JUNIOR\",\"major\":\"IT\",\"university\":\"HUST\",\"phone\":\"0123456789\",\"permanentAddress\":\"Hanoi\",\"position\":\"Intern Developer\",\"internshipStartDate\":\"2026-01-01\",\"internshipEndDate\":\"2026-06-01\",\"acceptanceDocument\":\"offer-v2.pdf\"}",
+                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"status\":\"ONBOARDING\",\"internshipSessionId\":\"%s\",\"companyAccount\":\"%s\",\"identityNumber\":\"ID-001\",\"technology\":\"Spring Boot\",\"mentorId\":\"%s\",\"organization\":\"Viettel\",\"gender\":\"MALE\",\"dateOfBirth\":\"2000-01-01\",\"level\":\"JUNIOR\",\"major\":\"IT\",\"university\":\"HUST\",\"phone\":\"0123456789\",\"permanentAddress\":\"Hanoi\",\"position\":\"Intern Developer\",\"internshipStartDate\":\"2026-01-01\",\"internshipEndDate\":\"2026-06-01\",\"acceptanceDocument\":\"offer-v2.pdf\"}",
                 userId,
+                internshipSessionId,
                 createdUser.getEmail(),
                 UUID.randomUUID()
         );
@@ -102,6 +106,7 @@ class InternOperatorIntegrationTest {
                         .content(updateRequest))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ONBOARDING"))
+                .andExpect(jsonPath("$.internshipSessionId").value(internshipSessionId.toString()))
                 .andExpect(jsonPath("$.technology").value("Spring Boot"))
                 .andExpect(jsonPath("$.acceptanceDocument").value("offer-v2.pdf"))
                 .andExpect(jsonPath("$.createdBy").exists())
@@ -125,15 +130,17 @@ class InternOperatorIntegrationTest {
         String adminToken = registerAndLogin("intern-search", "intern-search@example.com", "ADMIN");
         UUID mentorId = UUID.randomUUID();
         UUID projectId = UUID.randomUUID();
+        UUID internshipSessionId = createInternshipSession(adminToken, "Session 2026-B");
 
-        UUID firstUserId = createIntern(adminToken, UUID.randomUUID(), "acct-001", "ID-201", projectId, mentorId, "Viettel");
-        UUID secondUserId = createIntern(adminToken, UUID.randomUUID(), "acct-002", "ID-202", projectId, mentorId, "Viettel");
+        UUID firstUserId = createIntern(adminToken, UUID.randomUUID(), "acct-001", "ID-201", projectId, internshipSessionId, mentorId, "Viettel");
+        UUID secondUserId = createIntern(adminToken, UUID.randomUUID(), "acct-002", "ID-202", projectId, internshipSessionId, mentorId, "Viettel");
         String firstEmail = userRepository.findById(firstUserId).orElseThrow().getEmail();
         String secondEmail = userRepository.findById(secondUserId).orElseThrow().getEmail();
 
         String searchBodyPage1 = String.format(
-                "{\"organization\":\"Viettel\",\"status\":\"ACTIVE\",\"graduated\":false,\"projectId\":\"%s\",\"mentorId\":\"%s\",\"pageIndex\":0,\"pageSize\":1,\"sort\":\"companyAccount\",\"direction\":\"ASC\"}",
+                "{\"organization\":\"Viettel\",\"status\":\"ACTIVE\",\"graduated\":false,\"projectId\":\"%s\",\"internshipSessionId\":\"%s\",\"mentorId\":\"%s\",\"pageIndex\":0,\"pageSize\":1,\"sort\":\"companyAccount\",\"direction\":\"ASC\"}",
                 projectId,
+                internshipSessionId,
                 mentorId
         );
 
@@ -148,8 +155,9 @@ class InternOperatorIntegrationTest {
                 .andExpect(jsonPath("$.content[0].companyAccount").value(secondEmail));
 
         String searchBodyPage2 = String.format(
-                "{\"organization\":\"Viettel\",\"status\":\"ACTIVE\",\"graduated\":false,\"projectId\":\"%s\",\"mentorId\":\"%s\",\"pageIndex\":1,\"pageSize\":1,\"sort\":\"companyAccount\",\"direction\":\"ASC\"}",
+                "{\"organization\":\"Viettel\",\"status\":\"ACTIVE\",\"graduated\":false,\"projectId\":\"%s\",\"internshipSessionId\":\"%s\",\"mentorId\":\"%s\",\"pageIndex\":1,\"pageSize\":1,\"sort\":\"companyAccount\",\"direction\":\"ASC\"}",
                 projectId,
+                internshipSessionId,
                 mentorId
         );
 
@@ -164,9 +172,10 @@ class InternOperatorIntegrationTest {
     @Test
     void testSearchInterns_WithoutBody_ReturnsAllInternsWithDefaultPagination() throws Exception {
         String adminToken = registerAndLogin("intern-search-empty", "intern-search-empty@example.com", "ADMIN");
+        UUID internshipSessionId = createInternshipSession(adminToken, "Session 2026-C");
 
-        createIntern(adminToken, UUID.randomUUID(), "acct-empty-1", "ID-E-1", UUID.randomUUID(), UUID.randomUUID(), "Viettel");
-        createIntern(adminToken, UUID.randomUUID(), "acct-empty-2", "ID-E-2", UUID.randomUUID(), UUID.randomUUID(), "Viettel");
+        createIntern(adminToken, UUID.randomUUID(), "acct-empty-1", "ID-E-1", UUID.randomUUID(), internshipSessionId, UUID.randomUUID(), "Viettel");
+        createIntern(adminToken, UUID.randomUUID(), "acct-empty-2", "ID-E-2", UUID.randomUUID(), internshipSessionId, UUID.randomUUID(), "Viettel");
 
         mockMvc.perform(post("/private/api/v1/interns/search")
                         .header("Authorization", "Bearer " + adminToken))
@@ -212,14 +221,16 @@ class InternOperatorIntegrationTest {
         UUID userId = UUID.randomUUID();
         UUID mentorId = UUID.randomUUID();
         UUID projectId = UUID.randomUUID();
+        UUID internshipSessionId = createInternshipSession(hrToken, "Session 2026-D");
 
-        UUID generatedUserId = createIntern(hrToken, userId, "acct-900", "ID-900", projectId, mentorId, "FPT");
+        UUID generatedUserId = createIntern(hrToken, userId, "acct-900", "ID-900", projectId, internshipSessionId, mentorId, "FPT");
         String generatedEmail = userRepository.findById(generatedUserId).orElseThrow().getEmail();
 
         String searchBody = String.format(
-                "{\"userId\":\"%s\",\"status\":\"ACTIVE\",\"projectId\":\"%s\",\"graduated\":false,\"companyAccount\":\"%s\",\"mentorId\":\"%s\",\"organization\":\"FPT\",\"pageIndex\":0,\"pageSize\":10}",
+                "{\"userId\":\"%s\",\"status\":\"ACTIVE\",\"projectId\":\"%s\",\"internshipSessionId\":\"%s\",\"graduated\":false,\"companyAccount\":\"%s\",\"mentorId\":\"%s\",\"organization\":\"FPT\",\"pageIndex\":0,\"pageSize\":10}",
                 generatedUserId,
                 projectId,
+                internshipSessionId,
                 generatedEmail,
                 mentorId
         );
@@ -233,6 +244,7 @@ class InternOperatorIntegrationTest {
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.content[0].userId").value(generatedUserId.toString()))
+                .andExpect(jsonPath("$.content[0].internshipSessionId").value(internshipSessionId.toString()))
                 .andExpect(jsonPath("$.content[0].companyAccount").value(generatedEmail))
                 .andExpect(jsonPath("$.content[0].organization").value("FPT"));
     }
@@ -240,6 +252,7 @@ class InternOperatorIntegrationTest {
     @Test
     void testSearchInterns_ByPartialOrganization_WithVietnameseText_ReturnsMatch() throws Exception {
         String adminToken = registerAndLogin("intern-search-org", "intern-search-org@example.com", "ADMIN");
+        UUID internshipSessionId = createInternshipSession(adminToken, "Session 2026-E");
 
         createIntern(
                 adminToken,
@@ -247,6 +260,7 @@ class InternOperatorIntegrationTest {
                 "acct-org-1",
                 "ID-ORG-1",
                 UUID.randomUUID(),
+                internshipSessionId,
                 UUID.randomUUID(),
                 "Trung tâm phần mềm viễn thông"
         );
@@ -288,8 +302,9 @@ class InternOperatorIntegrationTest {
     void testCreateDuplicateCompanyAccountReturnsBadRequest() throws Exception {
         String adminToken = registerAndLogin("intern-dup", "intern-dup@example.com", "ADMIN");
         UUID userId1 = UUID.randomUUID();
+        UUID internshipSessionId = createInternshipSession(adminToken, "Session 2026-F");
 
-        UUID createdUserId = createIntern(adminToken, userId1, "acct-dup", "ID-100", UUID.randomUUID(), UUID.randomUUID(), "Viettel");
+        UUID createdUserId = createIntern(adminToken, userId1, "acct-dup", "ID-100", UUID.randomUUID(), internshipSessionId, UUID.randomUUID(), "Viettel");
 
         UserEntity savedUser = userRepository.findById(createdUserId).orElseThrow();
         org.junit.jupiter.api.Assertions.assertEquals(savedUser.getEmail(), internRepository.findAll().get(0).getCompanyAccount());
@@ -320,15 +335,17 @@ class InternOperatorIntegrationTest {
             String companyAccount,
             String identityNumber,
             UUID projectId,
+            UUID internshipSessionId,
             UUID mentorId,
             String organization
     ) throws Exception {
         String request = String.format(
-                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"companyAccount\":\"%s\",\"identityNumber\":\"%s\",\"projectId\":\"%s\",\"mentorId\":\"%s\",\"organization\":\"%s\"}",
+                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"companyAccount\":\"%s\",\"identityNumber\":\"%s\",\"projectId\":\"%s\",\"internshipSessionId\":\"%s\",\"mentorId\":\"%s\",\"organization\":\"%s\"}",
                 userId,
                 companyAccount,
                 identityNumber,
                 projectId,
+                internshipSessionId,
                 mentorId,
                 organization
         );
@@ -343,6 +360,21 @@ class InternOperatorIntegrationTest {
                 .andReturn();
 
         return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString()).get("userId").asText());
+    }
+
+    private UUID createInternshipSession(String token, String name) throws Exception {
+        String request = String.format(
+                "{\"name\":\"%s\",\"startDate\":\"2026-01-01\",\"endDate\":\"2026-06-01\"}",
+                name
+        );
+        MvcResult result = mockMvc.perform(post("/private/api/v1/internship-sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + token)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andReturn();
+        return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText());
     }
 
     private String registerAndLogin(String username, String email, String role) throws Exception {

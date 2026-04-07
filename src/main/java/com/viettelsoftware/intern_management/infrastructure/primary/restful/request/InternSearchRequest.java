@@ -21,6 +21,8 @@ public class InternSearchRequest extends BaseRequest {
 
     private UUID projectId;
 
+    private UUID internshipSessionId;
+
     private Boolean graduated;
 
     private String companyAccount;

@@ -8,6 +8,7 @@ import com.viettelsoftware.intern_management.infrastructure.primary.restful.requ
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.response.AttendanceResponse;
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.response.PageResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,13 +23,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("${application.path.base.private}/attendances")
+@RequiredArgsConstructor
 public class AttendanceOperator {
 
     private final AttendanceService attendanceService;
-
-    public AttendanceOperator(AttendanceService attendanceService) {
-        this.attendanceService = attendanceService;
-    }
 
     @PostMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'MENTOR', 'MANAGER', 'INTERN')")

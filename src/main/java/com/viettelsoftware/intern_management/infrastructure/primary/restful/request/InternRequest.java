@@ -26,6 +26,8 @@ public class InternRequest {
 
     private UUID projectId;
 
+    private UUID internshipSessionId;
+
     private Boolean graduated;
 
     @Size(max = 255, message = "Company account must not exceed 255 characters")

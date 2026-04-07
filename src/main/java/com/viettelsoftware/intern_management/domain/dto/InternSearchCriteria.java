@@ -22,6 +22,8 @@ public class InternSearchCriteria {
 
     private UUID projectId;
 
+    private UUID internshipSessionId;
+
     private Boolean graduated;
 
     private String companyAccount;

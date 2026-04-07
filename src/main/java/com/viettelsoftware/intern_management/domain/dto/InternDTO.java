@@ -25,6 +25,8 @@ public class InternDTO {
 
     private UUID projectId;
 
+    private UUID internshipSessionId;
+
     private Boolean graduated;
 
     private String companyAccount;

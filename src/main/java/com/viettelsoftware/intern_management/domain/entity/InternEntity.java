@@ -38,6 +38,9 @@ public class InternEntity extends BaseAuditing {
     @Column(name = "project_id")
     private UUID projectId;
 
+    @Column(name = "internship_session_id")
+    private UUID internshipSessionId;
+
     @Column(name = "is_graduated")
     @Builder.Default
     private Boolean graduated = Boolean.FALSE;

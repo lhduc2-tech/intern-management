@@ -10,6 +10,7 @@ import com.viettelsoftware.intern_management.infrastructure.primary.restful.requ
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.response.PermissionResponse;
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.response.RoleResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,13 +18,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("${application.path.base.private}/rbac")
+@RequiredArgsConstructor
 public class RolePermissionOperator {
 
     private final RolePermissionService rolePermissionService;
-
-    public RolePermissionOperator(RolePermissionService rolePermissionService) {
-        this.rolePermissionService = rolePermissionService;
-    }
 
     @GetMapping("/roles")
     @PreAuthorize("isAuthenticated()")

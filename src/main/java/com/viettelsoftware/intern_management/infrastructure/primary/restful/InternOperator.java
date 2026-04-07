@@ -8,6 +8,7 @@ import com.viettelsoftware.intern_management.infrastructure.primary.restful.requ
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.response.InternResponse;
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.response.PageResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,13 +23,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("${application.path.base.private}/interns")
+@RequiredArgsConstructor
 public class InternOperator {
 
     private final InternService internService;
-
-    public InternOperator(InternService internService) {
-        this.internService = internService;
-    }
 
     @PostMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'HR', 'MENTOR', 'MANAGER')")
@@ -66,6 +64,7 @@ public class InternOperator {
                 .userId(request.getUserId())
                 .status(request.getStatus())
                 .projectId(request.getProjectId())
+                .internshipSessionId(request.getInternshipSessionId())
                 .graduated(request.getGraduated())
                 .companyAccount(request.getCompanyAccount())
                 .technology(request.getTechnology())
@@ -92,6 +91,7 @@ public class InternOperator {
                 .userId(request.getUserId())
                 .status(request.getStatus())
                 .projectId(request.getProjectId())
+                .internshipSessionId(request.getInternshipSessionId())
                 .graduated(request.getGraduated())
                 .companyAccount(request.getCompanyAccount())
                 .mentorId(request.getMentorId())
@@ -105,6 +105,7 @@ public class InternOperator {
                 .userId(dto.getUserId())
                 .status(dto.getStatus())
                 .projectId(dto.getProjectId())
+                .internshipSessionId(dto.getInternshipSessionId())
                 .graduated(dto.getGraduated())
                 .companyAccount(dto.getCompanyAccount())
                 .technology(dto.getTechnology())

@@ -9,6 +9,7 @@ import com.viettelsoftware.intern_management.infrastructure.primary.restful.requ
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.response.PageResponse;
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.response.ProjectResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,13 +24,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("${application.path.base.private}/projects")
+@RequiredArgsConstructor
 public class ProjectOperator {
 
     private final ProjectService projectService;
-
-    public ProjectOperator(ProjectService projectService) {
-        this.projectService = projectService;
-    }
 
     @PostMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'MENTOR')")

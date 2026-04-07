@@ -6,6 +6,7 @@ import com.viettelsoftware.intern_management.domain.dto.UserDTO;
 import com.viettelsoftware.intern_management.domain.entity.RoleEntity;
 import com.viettelsoftware.intern_management.domain.port.primary.InternService;
 import com.viettelsoftware.intern_management.domain.port.secondary.InternPort;
+import com.viettelsoftware.intern_management.domain.port.secondary.InternshipSessionPort;
 import com.viettelsoftware.intern_management.domain.port.secondary.PasswordPort;
 import com.viettelsoftware.intern_management.domain.port.secondary.RolePort;
 import com.viettelsoftware.intern_management.domain.port.secondary.UserPort;
@@ -29,6 +30,7 @@ public class InternServiceImpl implements InternService {
     private final UserPort userPort;
     private final PasswordPort passwordPort;
     private final RolePort rolePort;
+    private final InternshipSessionPort internshipSessionPort;
 
     private static final String INTERN_PASSWORD = "Intern@2026";
     private static final String EMAIL_DOMAIN = "viettelsoftware.com";
@@ -55,6 +57,7 @@ public class InternServiceImpl implements InternService {
         UserDTO createdUser = createInternUser(fullName);
         normalized.setUserId(createdUser.getId());
         normalized.setCompanyAccount(createdUser.getEmail());
+        validateInternshipSessionExists(normalized.getInternshipSessionId());
         ensureUniqueConstraints(normalized, null);
         return internPort.save(normalized);
     }
@@ -64,6 +67,7 @@ public class InternServiceImpl implements InternService {
     public InternDTO updateIntern(UUID id, InternDTO internDTO) {
         InternDTO existing = getIntern(id);
         merge(existing, internDTO);
+        validateInternshipSessionExists(existing.getInternshipSessionId());
         ensureUniqueConstraints(existing, id);
         return internPort.update(existing);
     }
@@ -97,6 +101,9 @@ public class InternServiceImpl implements InternService {
         }
         if (source.getProjectId() != null) {
             target.setProjectId(source.getProjectId());
+        }
+        if (source.getInternshipSessionId() != null) {
+            target.setInternshipSessionId(source.getInternshipSessionId());
         }
         if (source.getGraduated() != null) {
             target.setGraduated(source.getGraduated());
@@ -183,6 +190,14 @@ public class InternServiceImpl implements InternService {
             return "ACTIVE";
         }
         return status.trim().toUpperCase();
+    }
+
+    private void validateInternshipSessionExists(UUID internshipSessionId) {
+        if (internshipSessionId == null) {
+            return;
+        }
+        internshipSessionPort.findById(internshipSessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Internship session not found: " + internshipSessionId));
     }
 
     private UserDTO createInternUser(String fullName) {

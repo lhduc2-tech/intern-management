@@ -5,6 +5,7 @@ import com.viettelsoftware.intern_management.domain.port.primary.AuthService;
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.request.LoginRequest;
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.request.RegisterRequest;
 import com.viettelsoftware.intern_management.infrastructure.primary.restful.response.AuthResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,13 +17,10 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("${application.path.base.public}/auth")
+@RequiredArgsConstructor
 public class AuthOperator {
 
     private final AuthService authService;
-
-    public AuthOperator(AuthService authService) {
-        this.authService = authService;
-    }
 
     @PostMapping("/register")
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest request) {
