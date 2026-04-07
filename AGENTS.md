@@ -24,7 +24,8 @@
 - `InternOperator` keeps private intern endpoints under `${application.path.base.private}/interns`; `POST /interns/search` is a paginated `searchInterns` flow with `InternSearchRequest` filters and `PageResponse`, and the flow is `InternOperator` -> `InternServiceImpl` -> `InternPort` -> `InternJpaAdapter` -> `InternRepository`.
 - `AttendanceOperator` keeps private attendance endpoints under `${application.path.base.private}/attendances`; search/get/create/update allow `ADMIN`, `HR`, `MENTOR`, `MANAGER`, and `INTERN`, while `DELETE /attendances/{id}` is limited to `ADMIN`, `HR`, and `MANAGER`.
 - `ProjectOperator` keeps private project endpoints under `${application.path.base.private}/projects`; `POST /projects/search` is a paginated `searchProjects` flow with `ProjectSearchRequest` filters and `PageResponse`, and the flow is `ProjectOperator` -> `ProjectServiceImpl` -> `ProjectPort` -> `ProjectJpaAdapter` -> `ProjectRepository`.
-- `RolePermissionOperator`, `UserOperator`, `AttendanceOperator`, `InternOperator`, and `ProjectOperator` map domain DTOs to dedicated REST response DTOs (`RoleResponse`, `PermissionResponse`, `UserResponse`, `AttendanceResponse`, `InternResponse`, `ProjectResponse`) via private mapper methods in the operator layer.
+- `TaskOperator` keeps private task endpoints under `${application.path.base.private}/tasks`; search/get/create/update allow `ADMIN`, `HR`, `MANAGER`, `MENTOR`, and `INTERN` (search/get only), while `POST /tasks` and `PUT /tasks/{id}` are limited to `ADMIN`, `HR`, `MANAGER`, and `MENTOR`, and `DELETE /tasks/{id}` is limited to `ADMIN`, `HR`, and `MANAGER`; `POST /tasks/search` is a paginated `searchTasks` flow with `TaskSearchRequest` filters and `PageResponse`, and the flow is `TaskOperator` -> `TaskServiceImpl` -> `TaskPort` -> `TaskJpaAdapter` -> `TaskRepository`.
+- `RolePermissionOperator`, `UserOperator`, `AttendanceOperator`, `InternOperator`, `ProjectOperator`, and `TaskOperator` map domain DTOs to dedicated REST response DTOs (`RoleResponse`, `PermissionResponse`, `UserResponse`, `AttendanceResponse`, `InternResponse`, `ProjectResponse`, `TaskResponse`) via private mapper methods in the operator layer.
 - Typical request flow: `AuthOperator` -> `AuthServiceImpl` -> secondary ports -> adapters/repositories.
 - Registration keeps the raw password in `UserDTO` only long enough for `AuthServiceImpl` to encode it, and supported roles are normalized/created there if missing.
 - RBAC mutations are handled by `RolePermissionServiceImpl`, which uppercases role/permission codes, rejects unsupported or missing codes with `IllegalArgumentException`, and creates admin-managed roles with `status = ACTIVE`.
@@ -32,6 +33,7 @@
 - User mutations are handled by `UserServiceImpl`, which trims identifiers, uppercases status and role codes, requires at least one role on create, auto-creates missing roles with `status = ACTIVE`, and encodes raw passwords before persistence.
 - Attendance mutations are handled by `AttendanceServiceImpl`, which requires `internId` and `date`, verifies the intern exists, trims notes, and rejects duplicate attendance rows for the same intern/date.
 - Project mutations are handled by `ProjectServiceImpl`, which trims search name filters, requires non-blank `name` on create/update, trims optional `description`, and throws `IllegalArgumentException` when payloads are invalid or a project is missing.
+- Task mutations are handled by `TaskServiceImpl`, which requires `projectId` on create, verifies the project exists, trims `title` and `description`, uppercases `priority` and `status` (defaults status to `TODO`), validates `startDate` is before or equal to `dueDate`, and throws `IllegalArgumentException` when payloads are invalid, tasks are missing, or project constraints are violated.
 
 ## Security and Error Handling Conventions
 - Security rules are centralized in `src/main/java/com/viettelsoftware/intern_management/wire/security/SecurityConfig.java`.
@@ -41,12 +43,12 @@
 - `JwtAuthenticationFilter` accepts `roles`, `permissions`, and legacy `role` claims, builds a principal map with `username` and `userId`, and exposes authorities as `ROLE_<ROLE>` plus uppercased permission codes.
 - Domain auth failures throw `AuthException` with `AuthErrorKey` values.
 - `GlobalExceptionHandler` returns map-shaped JSON for `AuthException`, validation, malformed payload, data-integrity, and access-denied failures (400/403/500 as appropriate), and translates common username/email uniqueness violations into friendly messages.
-- `UserServiceImpl`, `AttendanceServiceImpl`, and `ProjectServiceImpl` use `IllegalArgumentException` for business-rule failures, which `GlobalExceptionHandler` maps to `400 INVALID_ARGUMENT`.
+- `UserServiceImpl`, `AttendanceServiceImpl`, `ProjectServiceImpl`, and `TaskServiceImpl` use `IllegalArgumentException` for business-rule failures, which `GlobalExceptionHandler` maps to `400 INVALID_ARGUMENT`.
 
 ## Data, Mapping, and Domain Patterns
-- Entities use DTO mapping through MapStruct (`domain/mapper/BaseMapper`, `UserMapper`, `AttendanceMapper`, `ProjectMapper`).
+- Entities use DTO mapping through MapStruct (`domain/mapper/BaseMapper`, `UserMapper`, `AttendanceMapper`, `ProjectMapper`, `TaskMapper`).
 - JPA adapters commonly extend `BaseJPAAdapterVer2<...>` and expose DTO-based methods.
-- `BaseMapper` is the shared MapStruct contract; concrete mappers such as `UserMapper` and `AttendanceMapper` use `@Mapper(componentModel = "spring")`, and `UserMapper` derives `roleCodes`/`permissionCodes` from `RoleEntity` sets.
+- `BaseMapper` is the shared MapStruct contract; concrete mappers such as `UserMapper`, `AttendanceMapper`, `ProjectMapper`, and `TaskMapper` use `@Mapper(componentModel = "spring")`, and `UserMapper` derives `roleCodes`/`permissionCodes` from `RoleEntity` sets.
 - Role management uses `RoleDTO` as the domain DTO contract (renamed from the older `RoleManagementDTO`).
 - `UserEntity` generates UUIDs in `@PrePersist` using `UuidCreator.getTimeOrderedEpoch()`.
 - `InternEntity` maps the legacy `interns` table and keeps FK-like relations as UUID columns (`userId`, `projectId`, `mentorId`) rather than entity associations in the current CRUD/search slice.
@@ -56,10 +58,10 @@
 - `DatabaseConfiguration` enables auditing from `SecurityContextHolder`; if no authenticated principal is present, audit fields fall back to `system`.
 
 ## Developer Workflows (Verified)
-- Run tests: `./mvnw.cmd test -DskipITs` (current surefire reports under `target/surefire-reports` include `AttendanceOperatorIntegrationTest`, `InternOperatorIntegrationTest`, `ProjectOperatorIntegrationTest`, `RolePermissionOperatorIntegrationTest`, and `UserOperatorIntegrationTest`).
+- Run tests: `./mvnw.cmd test -DskipITs` (current surefire reports under `target/surefire-reports` include `AttendanceOperatorIntegrationTest`, `InternOperatorIntegrationTest`, `ProjectOperatorIntegrationTest`, `RolePermissionOperatorIntegrationTest`, `UserOperatorIntegrationTest`, and `TaskOperatorIntegrationTest`).
 - Build jar: `./mvnw.cmd clean package`.
 - Run app locally: set `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, optional `SERVER_CTX_PATH`, then `./mvnw.cmd spring-boot:run`.
-- Integration tests use MockMvc in `src/test/java/com/viettelsoftware/intern_management/infrastructure/primary/restful/AuthOperatorIntegrationTest.java`, `AttendanceOperatorIntegrationTest.java`, `InternOperatorIntegrationTest.java`, `ProjectOperatorIntegrationTest.java`, `RolePermissionOperatorIntegrationTest.java`, and `UserOperatorIntegrationTest.java`, all against the H2 `test` profile in `src/test/resources/application-test.yml`; the intern test covers filtered pagination on `POST /interns/search`, the attendance test covers CRUD plus duplicate intern/date rejection, project tests cover CRUD + filtered search + forbidden create for `INTERN`, the user test covers admin-only CRUD over `/users`, and RBAC tests cover admin-only role creation.
+- Integration tests use MockMvc in `src/test/java/com/viettelsoftware/intern_management/infrastructure/primary/restful/AuthOperatorIntegrationTest.java`, `AttendanceOperatorIntegrationTest.java`, `InternOperatorIntegrationTest.java`, `ProjectOperatorIntegrationTest.java`, `RolePermissionOperatorIntegrationTest.java`, `UserOperatorIntegrationTest.java`, and `TaskOperatorIntegrationTest.java`, all against the H2 `test` profile in `src/test/resources/application-test.yml`; the intern test covers filtered pagination on `POST /interns/search`, the attendance test covers CRUD plus duplicate intern/date rejection, project tests cover CRUD + filtered search + forbidden create for `INTERN`, the user test covers admin-only CRUD over `/users`, RBAC tests cover admin-only role creation, and task tests cover CRUD + filtered search + date validation + permission boundaries.
 - Docker image build is multi-stage in `Dockerfile` (`mvn package -DskipTests` then run jar).
 - Note: `Dockerfile` exposes `8080` while app config default is `8082`; align with env/runtime overrides when containerizing.
 
