@@ -18,6 +18,8 @@ public class TaskSearchCriteria {
 
     private UUID projectId;
 
+    private UUID internId;
+
     private String title;
 
     private String priority;

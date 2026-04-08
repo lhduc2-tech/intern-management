@@ -18,6 +18,8 @@ public class TaskSearchRequest extends BaseRequest {
 
     private UUID projectId;
 
+    private UUID internId;
+
     private String title;
 
     private String priority;

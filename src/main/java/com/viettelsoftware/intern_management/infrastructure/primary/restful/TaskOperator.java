@@ -87,6 +87,7 @@ public class TaskOperator {
     private TaskSearchCriteria toCriteria(TaskSearchRequest request) {
         return TaskSearchCriteria.builder()
                 .projectId(request.getProjectId())
+                .internId(request.getInternId())
                 .title(request.getTitle())
                 .priority(request.getPriority())
                 .status(request.getStatus())

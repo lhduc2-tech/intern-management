@@ -2,6 +2,8 @@ package com.viettelsoftware.intern_management.infrastructure.primary.restful;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.viettelsoftware.intern_management.domain.entity.TaskAssignmentEntity;
+import com.viettelsoftware.intern_management.infrastructure.secondary.jpa.repository.TaskAssignmentRepository;
 import com.viettelsoftware.intern_management.infrastructure.secondary.jpa.repository.TaskRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,8 +42,12 @@ class TaskOperatorIntegrationTest {
     @Autowired
     private TaskRepository taskRepository;
 
+    @Autowired
+    private TaskAssignmentRepository taskAssignmentRepository;
+
     @BeforeEach
     void setUp() {
+        taskAssignmentRepository.deleteAll();
         taskRepository.deleteAll();
     }
 
@@ -108,6 +114,64 @@ class TaskOperatorIntegrationTest {
                         .content("{\"projectId\":\"00000000-0000-0000-0000-000000000001\",\"title\":\"Forbidden\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("FORBIDDEN"));
+    }
+
+    @Test
+    void testSearchTasks_ByInternId_ReturnsAssignedTasksOnly() throws Exception {
+        String adminToken = registerAndLogin("task-search-intern", "task-search-intern@example.com", "ADMIN");
+        UUID projectId = createProject(adminToken, "Task Search Project", "Search by intern");
+
+        UUID internId = createIntern(adminToken, "task-assignee", "TASK-ID-1");
+        UUID otherInternId = createIntern(adminToken, "task-other", "TASK-ID-2");
+
+        UUID assignedTaskId = createTask(adminToken, projectId, "Assigned task");
+        UUID unassignedTaskId = createTask(adminToken, projectId, "Unassigned task");
+
+        taskAssignmentRepository.save(TaskAssignmentEntity.builder()
+                .taskId(assignedTaskId)
+                .internId(internId)
+                .build());
+        taskAssignmentRepository.save(TaskAssignmentEntity.builder()
+                .taskId(unassignedTaskId)
+                .internId(otherInternId)
+                .build());
+
+        mockMvc.perform(post("/private/api/v1/tasks/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .content("{\"internId\":\"" + internId + "\",\"pageIndex\":0,\"pageSize\":10}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(assignedTaskId.toString()));
+    }
+
+    private UUID createTask(String token, UUID projectId, String title) throws Exception {
+        String request = String.format("{\"projectId\":\"%s\",\"title\":\"%s\"}", projectId, title);
+        MvcResult result = mockMvc.perform(post("/private/api/v1/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + token)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andReturn();
+
+        return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText());
+    }
+
+    private UUID createIntern(String token, String fullName, String identityNumber) throws Exception {
+        String request = String.format(
+                "{\"fullName\":\"%s\",\"identityNumber\":\"%s\"}",
+                fullName,
+                identityNumber
+        );
+        MvcResult result = mockMvc.perform(post("/private/api/v1/interns")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + token)
+                        .content(request))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").exists())
+                .andReturn();
+        return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText());
     }
 
     private UUID createProject(String token, String name, String description) throws Exception {

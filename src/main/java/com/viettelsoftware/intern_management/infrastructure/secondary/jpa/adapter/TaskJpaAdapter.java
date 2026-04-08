@@ -2,11 +2,14 @@ package com.viettelsoftware.intern_management.infrastructure.secondary.jpa.adapt
 
 import com.viettelsoftware.intern_management.domain.dto.TaskDTO;
 import com.viettelsoftware.intern_management.domain.dto.TaskSearchCriteria;
+import com.viettelsoftware.intern_management.domain.entity.TaskAssignmentEntity;
 import com.viettelsoftware.intern_management.domain.entity.TaskEntity;
 import com.viettelsoftware.intern_management.domain.mapper.TaskMapper;
 import com.viettelsoftware.intern_management.domain.port.secondary.TaskPort;
 import com.viettelsoftware.intern_management.infrastructure.secondary.jpa.repository.TaskRepository;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -63,6 +66,16 @@ public class TaskJpaAdapter extends BaseJPAAdapterVer2<TaskEntity, TaskDTO, UUID
             }
             if (criteria.getProjectId() != null) {
                 predicate = cb.and(predicate, cb.equal(root.get("projectId"), criteria.getProjectId()));
+            }
+            if (criteria.getInternId() != null) {
+                Subquery<UUID> assignmentSubquery = query.subquery(UUID.class);
+                Root<TaskAssignmentEntity> assignmentRoot = assignmentSubquery.from(TaskAssignmentEntity.class);
+                assignmentSubquery.select(assignmentRoot.get("taskId"));
+                assignmentSubquery.where(
+                        cb.equal(assignmentRoot.get("taskId"), root.get("id")),
+                        cb.equal(assignmentRoot.get("internId"), criteria.getInternId())
+                );
+                predicate = cb.and(predicate, cb.exists(assignmentSubquery));
             }
             if (criteria.getTitle() != null && !criteria.getTitle().isBlank()) {
                 predicate = cb.and(predicate, cb.like(cb.lower(root.get("title")), "%" + criteria.getTitle().trim().toLowerCase() + "%"));
