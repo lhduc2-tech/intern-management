@@ -11,6 +11,7 @@ import com.viettelsoftware.intern_management.domain.port.secondary.PasswordPort;
 import com.viettelsoftware.intern_management.domain.port.secondary.RolePort;
 import com.viettelsoftware.intern_management.domain.port.secondary.UserPort;
 import com.viettelsoftware.intern_management.shared.enumeration.domain.RoleKey;
+import com.viettelsoftware.intern_management.shared.enumeration.domain.StatusKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -187,7 +188,7 @@ public class InternServiceImpl implements InternService {
 
     private String normalizeStatus(String status) {
         if (status == null || status.isBlank()) {
-            return "ACTIVE";
+            return StatusKey.ACTIVE.getCode();
         }
         return status.trim().toUpperCase();
     }
@@ -213,7 +214,7 @@ public class InternServiceImpl implements InternService {
                 .username(username)
                 .email(email)
                 .fullName(fullName.trim())
-                .status("ACTIVE")
+                .status(StatusKey.ACTIVE.getCode())
                 .roleCodes(Set.of(RoleKey.INTERN.getCode()))
                 .passwordHash(passwordPort.encode(INTERN_PASSWORD))
                 .build();
@@ -273,7 +274,7 @@ public class InternServiceImpl implements InternService {
                         .code(RoleKey.INTERN.getCode())
                         .name(RoleKey.INTERN.getCode())
                         .description(RoleKey.INTERN.getDescription())
-                        .status("ACTIVE")
+                        .status(StatusKey.ACTIVE.getCode())
                         .build()));
     }
 

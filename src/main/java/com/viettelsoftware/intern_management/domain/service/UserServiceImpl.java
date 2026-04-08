@@ -8,6 +8,7 @@ import com.viettelsoftware.intern_management.domain.port.secondary.PasswordPort;
 import com.viettelsoftware.intern_management.domain.port.secondary.RolePort;
 import com.viettelsoftware.intern_management.domain.port.secondary.UserPort;
 import com.viettelsoftware.intern_management.shared.enumeration.domain.RoleKey;
+import com.viettelsoftware.intern_management.shared.enumeration.domain.StatusKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -132,7 +133,7 @@ public class UserServiceImpl implements UserService {
 
     private String normalizeStatus(String status) {
         if (status == null || status.isBlank()) {
-            return "ACTIVE";
+            return StatusKey.ACTIVE.getCode();
         }
         return status.trim().toUpperCase();
     }
@@ -168,7 +169,7 @@ public class UserServiceImpl implements UserService {
                             .code(roleCode)
                             .name(roleCode)
                             .description(roleKey.getDescription())
-                            .status("ACTIVE")
+                            .status(StatusKey.ACTIVE.getCode())
                             .build()));
         });
     }

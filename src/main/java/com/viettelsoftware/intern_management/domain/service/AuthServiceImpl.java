@@ -10,6 +10,7 @@ import com.viettelsoftware.intern_management.domain.port.secondary.UserPort;
 import com.viettelsoftware.intern_management.exception.domain.AuthException;
 import com.viettelsoftware.intern_management.shared.enumeration.domain.AuthErrorKey;
 import com.viettelsoftware.intern_management.shared.enumeration.domain.RoleKey;
+import com.viettelsoftware.intern_management.shared.enumeration.domain.StatusKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,7 +52,7 @@ public class AuthServiceImpl implements AuthService {
                     .code(roleCode)
                     .name(roleCode)
                     .description(RoleKey.fromValue(roleCode).getDescription())
-                    .status("ACTIVE")
+                    .status(StatusKey.ACTIVE.getCode())
                     .build()));
         });
 
@@ -59,7 +60,7 @@ public class AuthServiceImpl implements AuthService {
                 .username(userDTO.getUsername())
                 .email(userDTO.getEmail())
                 .fullName(userDTO.getFullName())
-                .status("ACTIVE")
+                .status(StatusKey.ACTIVE.getCode())
                 .roleCodes(roleCodes)
                 .passwordHash(passwordPort.encode(userDTO.getPasswordHash()))
                 .build();

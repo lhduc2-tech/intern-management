@@ -9,6 +9,7 @@ import com.viettelsoftware.intern_management.domain.mapper.RoleMapper;
 import com.viettelsoftware.intern_management.domain.port.primary.RolePermissionService;
 import com.viettelsoftware.intern_management.domain.port.secondary.RolePermissionPort;
 import com.viettelsoftware.intern_management.shared.enumeration.domain.RoleKey;
+import com.viettelsoftware.intern_management.shared.enumeration.domain.StatusKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,7 +58,7 @@ public class RolePermissionServiceImpl implements RolePermissionService {
                 .code(normalizedCode)
                 .name(normalizeName(roleDTO.getName(), normalizedCode))
                 .description(roleDTO.getDescription() != null ? roleDTO.getDescription() : roleKey.getDescription())
-                .status("ACTIVE")
+                .status(StatusKey.ACTIVE.getCode())
                 .build();
 
         return roleMapper.toDto(rolePermissionPort.saveRole(roleEntity));

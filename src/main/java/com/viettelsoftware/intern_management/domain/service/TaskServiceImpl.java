@@ -5,6 +5,7 @@ import com.viettelsoftware.intern_management.domain.dto.TaskSearchCriteria;
 import com.viettelsoftware.intern_management.domain.port.primary.TaskService;
 import com.viettelsoftware.intern_management.domain.port.secondary.ProjectPort;
 import com.viettelsoftware.intern_management.domain.port.secondary.TaskPort;
+import com.viettelsoftware.intern_management.shared.enumeration.domain.TaskStatusKey;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -144,7 +145,7 @@ public class TaskServiceImpl implements TaskService {
 
     private String defaultStatus(String value) {
         String normalized = normalizeUpper(value);
-        return (normalized == null || normalized.isBlank()) ? "TODO" : normalized;
+        return (normalized == null || normalized.isBlank()) ? TaskStatusKey.TODO.getCode() : normalized;
     }
 }
 
