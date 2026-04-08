@@ -4,6 +4,7 @@ import com.viettelsoftware.intern_management.domain.dto.InternshipSessionDTO;
 import com.viettelsoftware.intern_management.domain.dto.InternshipSessionSearchCriteria;
 import com.viettelsoftware.intern_management.domain.port.primary.InternshipSessionService;
 import com.viettelsoftware.intern_management.domain.port.secondary.InternshipSessionPort;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -13,13 +14,10 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class InternshipSessionServiceImpl implements InternshipSessionService {
 
     private final InternshipSessionPort internshipSessionPort;
-
-    public InternshipSessionServiceImpl(InternshipSessionPort internshipSessionPort) {
-        this.internshipSessionPort = internshipSessionPort;
-    }
 
     @Override
     @Transactional(readOnly = true)

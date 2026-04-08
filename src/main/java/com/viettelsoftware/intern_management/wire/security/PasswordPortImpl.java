@@ -1,17 +1,15 @@
 package com.viettelsoftware.intern_management.wire.security;
 
 import com.viettelsoftware.intern_management.domain.port.secondary.PasswordPort;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class PasswordPortImpl implements PasswordPort {
 
     private final PasswordEncoder passwordEncoder;
-
-    public PasswordPortImpl(PasswordEncoder passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Override
     public String encode(String rawPassword) {
