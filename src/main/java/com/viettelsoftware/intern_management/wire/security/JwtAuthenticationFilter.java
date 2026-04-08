@@ -32,21 +32,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        // Collect authentication header
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String username;
 
+        // If not having token skip filter
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        // Extract token from header
         jwt = authHeader.substring(7);
+        // Check if token is valid
         if (jwtUtil.isTokenValid(jwt)) {
+            // Extract information from token (username, claims)
             username = jwtUtil.extractUsername(jwt);
             var claims = jwtUtil.extractAllClaims(jwt);
 
+            // If having auth skip set up again
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                // Collect data from claims
                 String userId = claims.get("userId", String.class);
 
                 List<String> roles = extractClaimList(claims.get("roles"));
@@ -64,6 +71,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 principal.put("userId", userId);
 
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                // Spring security requires role having prefix "ROLE_"
                 authorities.addAll(roles.stream()
                         .filter(role -> role != null && !role.isBlank())
                         .map(role -> new SimpleGrantedAuthority("ROLE_" + role.trim().toUpperCase()))
@@ -73,23 +81,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         .map(permission -> new SimpleGrantedAuthority(permission.trim().toUpperCase()))
                         .collect(Collectors.toList()));
 
+                // Create authentication includes
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        // user info
                         principal,
+                        // login before so credentials null
                         null,
+                        // roles and permissions
                         authorities
                 );
 
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                // Set authentication to security context to use for authorization later
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 
+        // Allow request to continue to controller
         filterChain.doFilter(request, response);
     }
 
     @SuppressWarnings("unchecked")
     private List<String> extractClaimList(Object claim) {
+        // Check data type for safe
         if (claim instanceof List<?> list) {
+            // Convert into List<String>
             return list.stream().map(Object::toString).toList();
         }
         return Collections.emptyList();
