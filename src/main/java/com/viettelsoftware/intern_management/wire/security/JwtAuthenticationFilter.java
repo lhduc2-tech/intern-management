@@ -55,6 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 // Collect data from claims
                 String userId = claims.get("userId", String.class);
+                String fullName = claims.get("fullName", String.class);
 
                 List<String> roles = extractClaimList(claims.get("roles"));
                 String legacyRole = claims.get("role", String.class);
@@ -69,6 +70,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Map<String, String> principal = new HashMap<>();
                 principal.put("username", username);
                 principal.put("userId", userId);
+                principal.put("fullName", fullName);
 
                 List<SimpleGrantedAuthority> authorities = new ArrayList<>();
                 // Spring security requires role having prefix "ROLE_"

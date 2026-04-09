@@ -47,6 +47,7 @@ public class JwtUtil implements JwtProviderPort {
         // Save user information into token
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userDTO.getId().toString());
+        claims.put("fullName", userDTO.getFullName());
         claims.put("roles", new ArrayList<>(userDTO.getRoleCodes()));
         claims.put("permissions", new ArrayList<>(userDTO.getPermissionCodes()));
         // Collect first role (to instant use such as authorization)
