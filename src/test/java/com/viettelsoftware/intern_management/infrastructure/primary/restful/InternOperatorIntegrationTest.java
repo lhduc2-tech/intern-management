@@ -275,6 +275,23 @@ class InternOperatorIntegrationTest {
     }
 
     @Test
+    void testSearchInterns_ByPartialCompanyAccount_ReturnsMatches() throws Exception {
+        String adminToken = registerAndLogin("intern-search-company", "intern-search-company@example.com", "ADMIN");
+        UUID internshipSessionId = createInternshipSession(adminToken, "Session 2026-G");
+
+        createIntern(adminToken, UUID.randomUUID(), "acct-c-1", "ID-C-1", UUID.randomUUID(), internshipSessionId, UUID.randomUUID(), "Viettel");
+        createIntern(adminToken, UUID.randomUUID(), "acct-c-2", "ID-C-2", UUID.randomUUID(), internshipSessionId, UUID.randomUUID(), "Viettel");
+
+        mockMvc.perform(post("/private/api/v1/interns/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .content("{\"companyAccount\":\"viettelsoftware.com\",\"pageIndex\":0,\"pageSize\":10}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content.length()").value(2));
+    }
+
+    @Test
     void testSearchInterns_ForInternRole_ReturnsForbidden() throws Exception {
         String internToken = registerAndLogin("intern-search-forbidden", "intern-search-forbidden@example.com", "INTERN");
 
