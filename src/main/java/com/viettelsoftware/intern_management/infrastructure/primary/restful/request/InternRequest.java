@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter
@@ -24,7 +25,7 @@ public class InternRequest {
     @Size(max = 50, message = "Status must not exceed 50 characters")
     private String status;
 
-    private UUID projectId;
+    private Set<UUID> projectIds;
 
     private UUID internshipSessionId;
 

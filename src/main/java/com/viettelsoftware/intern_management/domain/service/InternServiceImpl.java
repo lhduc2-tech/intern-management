@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
+import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -84,6 +86,7 @@ public class InternServiceImpl implements InternService {
         InternDTO normalized = internDTO == null ? new InternDTO() : internDTO;
         normalized.setId(null);
         normalized.setStatus(normalizeStatus(normalized.getStatus()));
+        normalized.setProjectIds(normalizeProjectIds(normalized.getProjectIds()));
         if (normalized.getGraduated() == null) {
             normalized.setGraduated(Boolean.FALSE);
         }
@@ -100,8 +103,8 @@ public class InternServiceImpl implements InternService {
         if (source.getStatus() != null) {
             target.setStatus(normalizeStatus(source.getStatus()));
         }
-        if (source.getProjectId() != null) {
-            target.setProjectId(source.getProjectId());
+        if (source.getProjectIds() != null) {
+            target.setProjectIds(normalizeProjectIds(source.getProjectIds()));
         }
         if (source.getInternshipSessionId() != null) {
             target.setInternshipSessionId(source.getInternshipSessionId());
@@ -191,6 +194,15 @@ public class InternServiceImpl implements InternService {
             return StatusKey.ACTIVE.getCode();
         }
         return status.trim().toUpperCase();
+    }
+
+    private Set<UUID> normalizeProjectIds(Set<UUID> projectIds) {
+        if (projectIds == null || projectIds.isEmpty()) {
+            return Set.of();
+        }
+        return projectIds.stream()
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
     }
 
     private void validateInternshipSessionExists(UUID internshipSessionId) {
@@ -284,10 +296,10 @@ public class InternServiceImpl implements InternService {
             normalized.setStatus(normalizeStatus(normalized.getStatus()));
         }
         if (normalized.getCompanyAccount() != null) {
-            normalized.setCompanyAccount(normalized.getCompanyAccount().trim());
+            normalized.setCompanyAccount(normalized.getCompanyAccount().trim().toLowerCase());
         }
         if (normalized.getOrganization() != null) {
-            normalized.setOrganization(normalized.getOrganization().trim());
+            normalized.setOrganization(normalized.getOrganization().trim().toLowerCase());
         }
         return normalized;
     }

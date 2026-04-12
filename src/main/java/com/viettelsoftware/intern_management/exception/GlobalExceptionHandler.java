@@ -1,6 +1,7 @@
 package com.viettelsoftware.intern_management.exception;
 
 import com.viettelsoftware.intern_management.exception.domain.AuthException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(AuthException.class)
@@ -61,6 +63,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(TransactionSystemException.class)
     public ResponseEntity<Map<String, Object>> handleTransactionSystemException(TransactionSystemException ex) {
+        log.error("Unhandled transaction system exception", ex);
         Throwable root = ex.getRootCause();
         if (root instanceof DataIntegrityViolationException dataIntegrityViolationException) {
             return handleDataIntegrityViolation(dataIntegrityViolationException);
@@ -122,6 +125,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        log.error("Unhandled exception", ex);
         Map<String, Object> details = new HashMap<>();
         details.put("exception", ex.getClass().getSimpleName());
         details.put("rootCause", safeMessage(ex.getCause()));

@@ -35,9 +35,6 @@ public class InternEntity extends BaseAuditing {
     @Builder.Default
     private String status = "ACTIVE";
 
-    @Column(name = "project_id")
-    private UUID projectId;
-
     @Column(name = "internship_session_id")
     private UUID internshipSessionId;
 

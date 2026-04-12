@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @SuppressWarnings("unused")
@@ -26,5 +27,9 @@ public interface InternPort {
     InternDTO update(InternDTO internDTO);
 
     void deleteById(UUID id);
+
+    Set<UUID> findProjectIdsByInternId(UUID internId);
+
+    void replaceProjects(UUID internId, Set<UUID> projectIds);
 }
 

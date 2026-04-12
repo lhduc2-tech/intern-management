@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter
@@ -21,9 +22,11 @@ public class InternDTO {
 
     private UUID userId;
 
+    private String fullName;
+
     private String status;
 
-    private UUID projectId;
+    private Set<UUID> projectIds;
 
     private UUID internshipSessionId;
 

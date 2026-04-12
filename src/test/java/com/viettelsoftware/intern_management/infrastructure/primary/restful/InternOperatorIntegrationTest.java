@@ -56,11 +56,13 @@ class InternOperatorIntegrationTest {
         String adminToken = registerAndLogin("intern-crud-admin", "intern-crud-admin@example.com", "ADMIN");
         String internToken = registerAndLogin("intern-crud-intern", "intern-crud-intern@example.com", "INTERN");
         UUID userId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
         UUID internshipSessionId = createInternshipSession(adminToken, "Session 2026-A");
 
         String createRequest = String.format(
-                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"internshipSessionId\":\"%s\",\"companyAccount\":\"acct-001\",\"identityNumber\":\"ID-001\",\"technology\":\"Java\",\"mentorId\":\"%s\",\"organization\":\"Viettel\",\"gender\":\"MALE\",\"dateOfBirth\":\"2000-01-01\",\"level\":\"FRESHER\",\"major\":\"IT\",\"university\":\"HUST\",\"phone\":\"0123456789\",\"permanentAddress\":\"Hanoi\",\"position\":\"Intern Developer\",\"internshipStartDate\":\"2026-01-01\",\"internshipEndDate\":\"2026-06-01\",\"acceptanceDocument\":\"offer.pdf\"}",
+                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"projectIds\":[\"%s\"],\"internshipSessionId\":\"%s\",\"companyAccount\":\"acct-001\",\"identityNumber\":\"ID-001\",\"technology\":\"Java\",\"mentorId\":\"%s\",\"organization\":\"Viettel\",\"gender\":\"MALE\",\"dateOfBirth\":\"2000-01-01\",\"level\":\"FRESHER\",\"major\":\"IT\",\"university\":\"HUST\",\"phone\":\"0123456789\",\"permanentAddress\":\"Hanoi\",\"position\":\"Intern Developer\",\"internshipStartDate\":\"2026-01-01\",\"internshipEndDate\":\"2026-06-01\",\"acceptanceDocument\":\"offer.pdf\"}",
                 userId,
+                projectId,
                 internshipSessionId,
                 UUID.randomUUID()
         );
@@ -72,6 +74,7 @@ class InternOperatorIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").exists())
                 .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.projectIds[0]").value(projectId.toString()))
                 .andExpect(jsonPath("$.internshipSessionId").value(internshipSessionId.toString()))
                 .andExpect(jsonPath("$.graduated").value(false))
                 .andReturn();
@@ -90,11 +93,13 @@ class InternOperatorIntegrationTest {
                         .header("Authorization", "Bearer " + internToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(internId.toString()))
+                .andExpect(jsonPath("$.fullName").value("Le Hai Duc"))
                 .andExpect(jsonPath("$.identityNumber").value("ID-001"));
 
         String updateRequest = String.format(
-                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"status\":\"ONBOARDING\",\"internshipSessionId\":\"%s\",\"companyAccount\":\"%s\",\"identityNumber\":\"ID-001\",\"technology\":\"Spring Boot\",\"mentorId\":\"%s\",\"organization\":\"Viettel\",\"gender\":\"MALE\",\"dateOfBirth\":\"2000-01-01\",\"level\":\"JUNIOR\",\"major\":\"IT\",\"university\":\"HUST\",\"phone\":\"0123456789\",\"permanentAddress\":\"Hanoi\",\"position\":\"Intern Developer\",\"internshipStartDate\":\"2026-01-01\",\"internshipEndDate\":\"2026-06-01\",\"acceptanceDocument\":\"offer-v2.pdf\"}",
+                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"status\":\"ONBOARDING\",\"projectIds\":[\"%s\"],\"internshipSessionId\":\"%s\",\"companyAccount\":\"%s\",\"identityNumber\":\"ID-001\",\"technology\":\"Spring Boot\",\"mentorId\":\"%s\",\"organization\":\"Viettel\",\"gender\":\"MALE\",\"dateOfBirth\":\"2000-01-01\",\"level\":\"JUNIOR\",\"major\":\"IT\",\"university\":\"HUST\",\"phone\":\"0123456789\",\"permanentAddress\":\"Hanoi\",\"position\":\"Intern Developer\",\"internshipStartDate\":\"2026-01-01\",\"internshipEndDate\":\"2026-06-01\",\"acceptanceDocument\":\"offer-v2.pdf\"}",
                 userId,
+                projectId,
                 internshipSessionId,
                 createdUser.getEmail(),
                 UUID.randomUUID()
@@ -106,6 +111,7 @@ class InternOperatorIntegrationTest {
                         .content(updateRequest))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ONBOARDING"))
+                .andExpect(jsonPath("$.projectIds[0]").value(projectId.toString()))
                 .andExpect(jsonPath("$.internshipSessionId").value(internshipSessionId.toString()))
                 .andExpect(jsonPath("$.technology").value("Spring Boot"))
                 .andExpect(jsonPath("$.acceptanceDocument").value("offer-v2.pdf"))
@@ -152,6 +158,7 @@ class InternOperatorIntegrationTest {
                 .andExpect(jsonPath("$.size").value(1))
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.content[0].fullName").value("Le Hai Duc"))
                 .andExpect(jsonPath("$.content[0].companyAccount").value(secondEmail));
 
         String searchBodyPage2 = String.format(
@@ -243,6 +250,7 @@ class InternOperatorIntegrationTest {
                 .andExpect(jsonPath("$.size").value(10))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.content[0].fullName").value("Le Hai Duc"))
                 .andExpect(jsonPath("$.content[0].userId").value(generatedUserId.toString()))
                 .andExpect(jsonPath("$.content[0].internshipSessionId").value(internshipSessionId.toString()))
                 .andExpect(jsonPath("$.content[0].companyAccount").value(generatedEmail))
@@ -357,7 +365,7 @@ class InternOperatorIntegrationTest {
             String organization
     ) throws Exception {
         String request = String.format(
-                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"companyAccount\":\"%s\",\"identityNumber\":\"%s\",\"projectId\":\"%s\",\"internshipSessionId\":\"%s\",\"mentorId\":\"%s\",\"organization\":\"%s\"}",
+                "{\"fullName\":\"Le Hai Duc\",\"userId\":\"%s\",\"companyAccount\":\"%s\",\"identityNumber\":\"%s\",\"projectIds\":[\"%s\"],\"internshipSessionId\":\"%s\",\"mentorId\":\"%s\",\"organization\":\"%s\"}",
                 userId,
                 companyAccount,
                 identityNumber,
